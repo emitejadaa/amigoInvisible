@@ -123,6 +123,24 @@ button.secondary {
 }
 .toggle input { width: 20px; height: 20px; }
 
+.share-btn {
+  margin-top: 12px;
+  background: transparent;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+}
+.share-btn:hover { background: var(--accent); color: #fff; }
+
+.share-feedback {
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 0.85rem;
+  text-align: center;
+  min-height: 1.1em;
+  margin: 6px 0 0;
+  word-break: break-all;
+}
+
 .list { list-style: none; margin: 0; padding: 0; }
 .list li {
   display: flex;

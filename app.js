@@ -297,6 +297,53 @@ document.getElementById("btn-back").addEventListener("click", () => {
   window.location.reload();
 });
 
+// ---------- Compartir enlace de la sala ----------
+function roomShareLink() {
+  return location.origin + location.pathname + "?code=" + encodeURIComponent(state.code);
+}
+
+function showFeedback(el, msg) {
+  el.textContent = msg;
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.textContent = ""; }, 3500);
+}
+
+async function shareRoom(feedbackEl) {
+  const link = roomShareLink();
+  const text = "¡Sumate a mi Amigo Invisible! 🎁 Código de sala: " + state.code;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "Amigo Invisible", text, url: link });
+      return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return; // el usuario canceló el share
+    }
+  }
+  // Fallback: copiar al portapapeles
+  try {
+    await navigator.clipboard.writeText(link);
+    showFeedback(feedbackEl, "¡Enlace copiado! Pegalo donde quieras.");
+  } catch (_) {
+    showFeedback(feedbackEl, link);
+  }
+}
+
+document.getElementById("btn-share-admin").addEventListener("click", () =>
+  shareRoom(document.getElementById("share-feedback-admin")));
+document.getElementById("btn-share-participant").addEventListener("click", () =>
+  shareRoom(document.getElementById("share-feedback-participant")));
+
+// ---------- Autocompletar código desde el enlace (?code=XXXXX) ----------
+function prefillCodeFromUrl() {
+  const code = new URLSearchParams(location.search).get("code");
+  if (!code) return;
+  document.getElementById("join-code").value = code.trim().toUpperCase();
+  document.getElementById("join-name").focus();
+}
+
+prefillCodeFromUrl();
+
 // ---------- Restaurar sesión (refresh de página) ----------
 async function restoreSession() {
   const raw = localStorage.getItem(SESSION_KEY);
