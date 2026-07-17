@@ -183,4 +183,20 @@ button.secondary {
   padding: 10px 0;
 }
 
+.secondary-action {
+  margin-top: 4px;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.secondary-action:hover { background: var(--border); color: var(--text); }
+
+.danger-action {
+  margin-top: 10px;
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+.danger-action:hover { background: var(--danger); color: #fff; }
+
 .hidden { display: none; }

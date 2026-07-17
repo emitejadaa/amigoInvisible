@@ -12,6 +12,7 @@ let state = {
   name: null,
 };
 let channel = null;
+let ended = false; // evita mensajes/acciones duplicadas al terminar la sesión de sala
 
 const views = {
   home: document.getElementById("view-home"),
@@ -132,7 +133,7 @@ function subscribe() {
           payload.old &&
           payload.old.id === state.participantId
         ) {
-          onKicked();
+          onRemovedFromRoom();
           return;
         }
         refreshRoster();
@@ -141,7 +142,13 @@ function subscribe() {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "rooms", filter: "code=eq." + state.code },
-      (payload) => { applyRoom(payload.new); },
+      (payload) => {
+        if (payload.eventType === "DELETE") {
+          endWithMessage("El admin cerró la sala.");
+          return;
+        }
+        applyRoom(payload.new);
+      },
     )
     .subscribe();
 }
@@ -285,12 +292,49 @@ async function fetchResult() {
   }
 }
 
-// ---------- Expulsado ----------
-function onKicked() {
+// ---------- Fin de sesión de sala (salir / echado / cerrada) ----------
+function endWithMessage(msg) {
+  if (ended) return;
+  ended = true;
   clearSession();
-  if (channel) supabase.removeChannel(channel);
-  showMessage("Fuiste expulsado de la sala por el admin.");
+  if (channel) { supabase.removeChannel(channel); channel = null; }
+  showMessage(msg);
 }
+
+// Distingue si al participante lo echaron o si se cerró la sala entera.
+async function onRemovedFromRoom() {
+  if (ended) return;
+  const { data: room } = await supabase
+    .from("rooms")
+    .select("code")
+    .eq("code", state.code)
+    .maybeSingle();
+  endWithMessage(room ? "Fuiste expulsado de la sala por el admin." : "El admin cerró la sala.");
+}
+
+// Participante: salir de la sala
+document.getElementById("btn-leave-room").addEventListener("click", async () => {
+  if (!confirm("¿Seguro que querés salir de la sala?")) return;
+  await fn("leave_room", {
+    code: state.code,
+    participantId: state.participantId,
+    token: state.token,
+  });
+  endWithMessage("Saliste de la sala.");
+});
+
+// Admin: cerrar la sala por completo
+document.getElementById("btn-close-room").addEventListener("click", async () => {
+  if (!confirm("¿Cerrar la sala por completo? Se elimina para todos y no se puede deshacer.")) {
+    return;
+  }
+  const res = await fn("close_room", { code: state.code, adminToken: state.adminToken });
+  if (res.error) {
+    document.getElementById("admin-error").textContent = res.error;
+    return;
+  }
+  endWithMessage("Cerraste la sala. Se eliminó para todos los participantes.");
+});
 
 document.getElementById("btn-back").addEventListener("click", () => {
   clearSession();
@@ -372,7 +416,10 @@ async function restoreSession() {
       .select("id")
       .eq("id", state.participantId)
       .maybeSingle();
-    if (!me && room.status === "lobby") { onKicked(); return; }
+    if (!me && room.status === "lobby") {
+      endWithMessage("Ya no estás en la sala.");
+      return;
+    }
     await enterParticipant();
     if (room.status === "drawn") await fetchResult();
   }

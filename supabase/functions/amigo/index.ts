@@ -70,6 +70,10 @@ Deno.serve(async (req: Request) => {
         return await createRoom(supabase, payload);
       case "join_room":
         return await joinRoom(supabase, payload);
+      case "leave_room":
+        return await leaveRoom(supabase, payload);
+      case "close_room":
+        return await closeRoom(supabase, payload);
       case "toggle_participate":
         return await toggleParticipate(supabase, payload);
       case "kick":
@@ -97,6 +101,34 @@ async function verifyAdmin(supabase: SB, code: string, adminToken: string) {
     .eq("code", code)
     .maybeSingle();
   return data && data.admin_token === adminToken;
+}
+
+async function leaveRoom(supabase: SB, payload: Record<string, unknown>) {
+  const code = String(payload.code || "").trim().toUpperCase();
+  const participantId = String(payload.participantId || "");
+  const token = String(payload.token || "");
+
+  const { data } = await supabase
+    .from("participant_tokens")
+    .select("token")
+    .eq("id", participantId)
+    .eq("code", code)
+    .maybeSingle();
+  if (!data || data.token !== token) return json({ error: "No autorizado." }, 403);
+
+  await supabase.from("participants").delete().eq("id", participantId).eq("code", code);
+  return json({ ok: true });
+}
+
+async function closeRoom(supabase: SB, payload: Record<string, unknown>) {
+  const code = String(payload.code || "").trim().toUpperCase();
+  const adminToken = String(payload.adminToken || "");
+  if (!(await verifyAdmin(supabase, code, adminToken))) {
+    return json({ error: "No autorizado." }, 403);
+  }
+  // El borrado de la sala cascada a participants, tokens, secrets y assignments.
+  await supabase.from("rooms").delete().eq("code", code);
+  return json({ ok: true });
 }
 
 async function createRoom(supabase: SB, payload: Record<string, unknown>) {
