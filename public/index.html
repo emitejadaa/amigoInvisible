@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Amigo Invisible</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🎁 Amigo Invisible</h1>
+  </header>
+
+  <main id="view-home" class="view active">
+    <div class="card">
+      <h2>Crear una sala</h2>
+      <input id="create-name" type="text" placeholder="Tu nombre" maxlength="30" />
+      <button id="btn-create">Crear sala</button>
+    </div>
+
+    <div class="divider">o</div>
+
+    <div class="card">
+      <h2>Unirse a una sala</h2>
+      <input id="join-code" type="text" placeholder="Código de sala" maxlength="5" autocapitalize="characters" />
+      <input id="join-name" type="text" placeholder="Tu nombre" maxlength="30" />
+      <button id="btn-join">Unirme</button>
+    </div>
+
+    <p id="home-error" class="error"></p>
+  </main>
+
+  <main id="view-admin" class="view">
+    <div class="card">
+      <p class="label">Código de la sala</p>
+      <div class="room-code" id="admin-room-code">------</div>
+      <p class="hint">Compartí este código con tus amigos para que se unan.</p>
+    </div>
+
+    <div class="card">
+      <label class="toggle">
+        <input type="checkbox" id="admin-participate" />
+        Yo también participo en el sorteo
+      </label>
+    </div>
+
+    <div class="card">
+      <h2>Participantes (<span id="participant-count">0</span>)</h2>
+      <ul id="participant-list" class="list"></ul>
+    </div>
+
+    <button id="btn-draw" class="primary">Realizar sorteo 🎉</button>
+    <p id="admin-error" class="error"></p>
+    <p id="admin-result" class="result"></p>
+  </main>
+
+  <main id="view-participant" class="view">
+    <div class="card">
+      <p class="label">Sala</p>
+      <div class="room-code" id="participant-room-code">------</div>
+    </div>
+
+    <div class="card" id="waiting-card">
+      <h2>Esperando a que el admin haga el sorteo…</h2>
+      <p class="hint">Participantes en la sala:</p>
+      <ul id="participant-list-view" class="list"></ul>
+    </div>
+
+    <div class="card hidden" id="result-card">
+      <h2>Te tocó regalarle a:</h2>
+      <div class="result-name" id="assigned-name"></div>
+    </div>
+  </main>
+
+  <main id="view-message" class="view">
+    <div class="card">
+      <p id="message-text"></p>
+      <button id="btn-back">Volver al inicio</button>
+    </div>
+  </main>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
