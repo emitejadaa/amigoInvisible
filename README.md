@@ -1,31 +1,45 @@
 # amigoInvisible
 
-App simple para hacer el sorteo de amigo invisible en tiempo real.
+App simple para hacer el sorteo de amigo invisible en tiempo real, desde el celular.
 
-Un admin crea una sala y recibe un código. Los demás se unen desde su celular con ese código.
-Cuando el admin presiona "Realizar sorteo", cada participante recibe en su propio dispositivo,
-en privado, el nombre de la persona a la que le tiene que regalar.
+Un admin crea una sala y recibe un código. Los demás se unen con ese código desde su
+dispositivo. Cuando el admin presiona **Realizar sorteo**, cada participante recibe
+en su propia pantalla, **en privado**, el nombre de la persona a la que le tiene que regalar.
 
 ## Funcionalidades
 
-- El admin crea la sala y puede decidir si participa o no del sorteo.
+- El admin crea la sala y puede elegir si participa o no del sorteo.
 - Los participantes se unen por código, sin necesidad de login.
-- Lista de participantes en vivo (vía WebSockets).
-- El admin puede expulsar participantes de la sala antes del sorteo.
-- Al sortear, cada persona ve solo su propio resultado en su pantalla; nadie más lo ve.
+- Lista de participantes en vivo (Supabase Realtime).
+- El admin puede expulsar participantes antes del sorteo.
+- Al sortear, cada persona ve **solo** su propio resultado; nadie más puede verlo.
+- El sorteo evita que a alguien le toque regalarse a sí mismo (derangement).
 
-## Cómo correrla
+## Arquitectura
 
-```bash
-npm install
-npm start
-```
+Es un sitio **estático** (HTML/CSS/JS plano) desplegable en Vercel, con
+[Supabase](https://supabase.com) como backend:
 
-Por defecto queda disponible en `http://localhost:3000`. Cada participante abre esa URL
-desde su celular (en la misma red, o publicando el server en algún hosting) y se une con el código de sala.
+- **Postgres** guarda salas, participantes y asignaciones.
+- **Supabase Realtime** sincroniza en vivo la lista de participantes y el estado de la sala.
+- **Edge Function `amigo`** contiene toda la lógica sensible (crear/unirse/echar/sortear/ver
+  resultado) y corre con la *service role key*.
 
-## Stack
+### Seguridad del secreto
 
-Node.js + Express + Socket.IO en el backend, HTML/CSS/JS plano en el frontend. Todo el
-estado de las salas vive en memoria del proceso (pensado para un evento puntual, no
-requiere base de datos).
+Las tablas de secretos (`room_secrets`, `participant_tokens`) y de resultados
+(`assignments`) tienen Row Level Security que **bloquea toda lectura desde el cliente**.
+La única forma de conocer a quién te tocó es llamar a la Edge Function con tu token
+secreto, que devuelve exclusivamente tu propia asignación. Ni siquiera el admin puede
+ver las asignaciones ajenas.
+
+## Configuración
+
+`config.js` contiene la URL del proyecto Supabase y la *anon key* (ambas son públicas
+por diseño). Si clonás esto en tu propio Supabase, actualizá esos valores y desplegá la
+Edge Function que está en `supabase/functions/amigo/`.
+
+## Deploy
+
+Es estático: cualquier hosting de archivos estáticos sirve. En Vercel, deploy directo
+sin build (framework: "Other" / ninguno).
